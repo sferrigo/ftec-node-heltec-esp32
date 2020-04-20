@@ -4,41 +4,42 @@
 #include <SPI.h>
 //#include "TheThingsNetwork.h"
 
+//Por padrão, o código usa dragino. Se usar Heltec, descomentar linah abaixo.
+#define heltec
+
+//Define qual dos dispositivos será compilado. Somente um por vez pode ser compilado
+#define ttn_dragino_ftec 0
+#define ttn_heltec_forte 1
+#define ttn_heltec_fraco 0
+
 // LoRaWAN NwkSKey, network session key
 // This is the default Semtech key, which is used by the prototype TTN
 // network initially.
-//ttn
 //static const PROGMEM u1_t NWKSKEY[16] = { 0x62, 0x2A, 0x51, 0x71, 0xE1, 0xD8, 0x20, 0x1B, 0x45, 0x60, 0x11, 0x37, 0xFE, 0x9F, 0x1B, 0x63 };
-//Heltec Samuel
-static const PROGMEM u1_t NWKSKEY[16] = { 0x2C, 0xB4, 0xDB, 0xFF, 0x01, 0xB8, 0x46, 0x2E, 0xEF, 0x82, 0x5F, 0xFC, 0x89, 0x83, 0xB0, 0xD0 };
-//Dragino
-//static const PROGMEM u1_t NWKSKEY[16] = { 0x8B, 0x19, 0x63, 0xA9, 0x98, 0x9C, 0xEC, 0x9B, 0xC6, 0x7D, 0xF7, 0xD8, 0xD3, 0x8A, 0x40, 0xE2 };
-//Heltec Joel
-//static const PROGMEM u1_t NWKSKEY[16] = { 0xF7, 0x0F, 0x22, 0x84, 0x5C, 0x07, 0x50, 0x84, 0x31, 0x5C, 0x0D, 0x5B, 0x54, 0x96, 0xBC, 0x3F };
 
 // LoRaWAN AppSKey, application session key
 // This is the default Semtech key, which is used by the prototype TTN
 // network initially.
-//ttn
 //static const u1_t PROGMEM APPSKEY[16] = { 0x11, 0xC7, 0xF4, 0xF7, 0x43, 0xB2, 0xE1, 0x31, 0x69, 0x84, 0x6E, 0xE9, 0xEE, 0x9F, 0x87, 0xD0 };
-//Heltec Samuel
-static const u1_t PROGMEM APPSKEY[16] = { 0xBF, 0xEE, 0x49, 0x92, 0x7E, 0x7F, 0x4C, 0x88, 0x79, 0xE7, 0xA7, 0x71, 0x0F, 0x40, 0xD5, 0x64 };
-//Dragino
-//static const u1_t PROGMEM APPSKEY[16] = { 0x7B, 0x2D, 0x93, 0xEA, 0x74, 0x34, 0x9C, 0x65, 0x55, 0x2A, 0xB7, 0xA7, 0x15, 0xB9, 0x3D, 0x4C };
-//Heltec Joel
-//static const u1_t PROGMEM APPSKEY[16] = { 0x1C, 0xF6, 0xAC, 0x56, 0x01, 0x38, 0xA7, 0xCC, 0xD7, 0xC1, 0x2E, 0xF9, 0x0B, 0x1A, 0x54, 0x52 };
 
 //
 // LoRaWAN end-device address (DevAddr)
 // See http://thethingsnetwork.org/wiki/AddressSpace
-// ttn
 //static const u4_t DEVADDR = 0x2603149D;
-//Heltec Samuel
-static const u4_t DEVADDR = 0x26031448;
-//Dragino
-//static const u4_t DEVADDR = 0x2603167B;
-//Heltec Joao
-//static const u4_t DEVADDR = 0x26031DAA;
+
+#ifdef defined (ttn_dragino_ftec)
+  static const PROGMEM u1_t NWKSKEY[16] = { 0x8B, 0x19, 0x63, 0xA9, 0x98, 0x9C, 0xEC, 0x9B, 0xC6, 0x7D, 0xF7, 0xD8, 0xD3, 0x8A, 0x40, 0xE2 };
+  static const u1_t PROGMEM APPSKEY[16] = { 0x7B, 0x2D, 0x93, 0xEA, 0x74, 0x34, 0x9C, 0x65, 0x55, 0x2A, 0xB7, 0xA7, 0x15, 0xB9, 0x3D, 0x4C };
+  static const u4_t DEVADDR = 0x2603167B;
+#elif defined (ttn_heltec_forte)
+  static const PROGMEM u1_t NWKSKEY[16] = { 0x2C, 0xB4, 0xDB, 0xFF, 0x01, 0xB8, 0x46, 0x2E, 0xEF, 0x82, 0x5F, 0xFC, 0x89, 0x83, 0xB0, 0xD0 };
+  static const u1_t PROGMEM APPSKEY[16] = { 0xBF, 0xEE, 0x49, 0x92, 0x7E, 0x7F, 0x4C, 0x88, 0x79, 0xE7, 0xA7, 0x71, 0x0F, 0x40, 0xD5, 0x64 };
+  static const u4_t DEVADDR = 0x26031448;
+#elif defined (ttn_heltec_fraco)
+  static const PROGMEM u1_t NWKSKEY[16] = { 0xF7, 0x0F, 0x22, 0x84, 0x5C, 0x07, 0x50, 0x84, 0x31, 0x5C, 0x0D, 0x5B, 0x54, 0x96, 0xBC, 0x3F };
+  static const u1_t PROGMEM APPSKEY[16] = { 0x1C, 0xF6, 0xAC, 0x56, 0x01, 0x38, 0xA7, 0xCC, 0xD7, 0xC1, 0x2E, 0xF9, 0x0B, 0x1A, 0x54, 0x52 };
+  static const u4_t DEVADDR = 0x26031DAA;
+#endif
 
 //Para ler sensor
 //static const int LM35 = 0;
@@ -54,8 +55,8 @@ void os_getArtEui (u1_t* buf) { }
 void os_getDevEui (u1_t* buf) { }
 void os_getDevKey (u1_t* buf) { }
 
-static uint8_t  mydata[] = "Anteninha enviando dados!";
-
+//static uint8_t  mydata[] = "Teste!";
+static uint8_t  mydata[1000];
 
 //Talvez deixar só o sendjob
 //static osjob_t initjob, sendjob, blinkjob;
@@ -65,22 +66,23 @@ static osjob_t sendjob;
 // cycle limitations).
 const unsigned TX_INTERVAL = 30; //Padrão 60
 
-// Pin mapping Heltec
+#ifdef heltec
+//Pin mapping heltec
 const lmic_pinmap lmic_pins = {
   .nss = 18,//10,
   .rxtx = LMIC_UNUSED_PIN,
   .rst = 14,//9,
   .dio = {26, 33, 32},//{2, 6, 7},
 };
-
+#else
 // Pin mapping Dragino
-/*const lmic_pinmap lmic_pins = {
+const lmic_pinmap lmic_pins = {
   .nss = 10,
   .rxtx = LMIC_UNUSED_PIN,
   .rst = 9,
   .dio = {2, 6, 7},
-}; */
-
+}; 
+#endif
 
 void do_send(osjob_t* j) {
 
@@ -99,6 +101,10 @@ void do_send(osjob_t* j) {
     //else{
     //  dtostrf(1, 5, 2, (char*)mydata);
     //}
+   
+    memcpy(mydata, "azul", sizeof(mydata));
+    //mydata = "Teste2";
+    
     // Prepare transmission at the next possible time.
     LMIC_setTxData2(1, mydata, strlen((char*) mydata), 0);
     //LMIC_setTxData();
@@ -226,7 +232,7 @@ void setup() {
   LMIC.dn2Dr = DR_SF9;
 
   // Set data rate and transmit power (note: txpow seems to be ignored by the library)
-  LMIC_setDrTxpow(DR_SF10, 14); // Ver se GW está no 10
+  LMIC_setDrTxpow(DR_SF9, 14); // Ver se GW está no 10
 
   //Deixa canal único
   //for (int i = 1; i < 64; i++)
@@ -270,14 +276,15 @@ void setup() {
 
 void loop() {
   
-  //Desabilitado por sferrigo
-  //Aguarda resposta para retransmitir
-  //os_runloop_once();
-  
-  //Caso queira trnsmitir a força descomentar as linhas abaixo
-  delay(3000);
+  #ifndef heltec
+  //Aguarda resposta para TTN retransmitir ao dispositivo
+  os_runloop_once();
+  #else
+  //Heltec não abre a janela de RX. Causa desconehcida
+  delay(TX_INTERVAL * 1000);
   LMIC_clrTxData();
   do_send(&sendjob);
+  #endif
   
   //Serial.print("Frequencia: ");
   //Serial.println(LMIC.freq);
