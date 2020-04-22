@@ -8,7 +8,7 @@
 #define heltec
 
 //Define qual dos dispositivos será compilado. Somente um por vez pode ser compilado
-#define ttn_dragino_ftec 0
+#define ttn_dragino 0
 #define ttn_heltec_forte 1
 #define ttn_heltec_fraco 0
 
@@ -27,7 +27,7 @@
 // See http://thethingsnetwork.org/wiki/AddressSpace
 //static const u4_t DEVADDR = 0x2603149D;
 
-#ifdef defined (ttn_dragino_ftec)
+#ifdef defined (ttn_dragino)
   static const PROGMEM u1_t NWKSKEY[16] = { 0x8B, 0x19, 0x63, 0xA9, 0x98, 0x9C, 0xEC, 0x9B, 0xC6, 0x7D, 0xF7, 0xD8, 0xD3, 0x8A, 0x40, 0xE2 };
   static const u1_t PROGMEM APPSKEY[16] = { 0x7B, 0x2D, 0x93, 0xEA, 0x74, 0x34, 0x9C, 0x65, 0x55, 0x2A, 0xB7, 0xA7, 0x15, 0xB9, 0x3D, 0x4C };
   static const u4_t DEVADDR = 0x2603167B;
@@ -55,7 +55,9 @@ void os_getArtEui (u1_t* buf) { }
 void os_getDevEui (u1_t* buf) { }
 void os_getDevKey (u1_t* buf) { }
 
-//static uint8_t  mydata[] = "Teste!";
+//Limite 52 bytes
+//static uint8_t  mydata[] = "TesteTesteTesteTesteTesteTesteTesteTesteTesteTesteTes";
+int tamanho_vetor = 52;
 static uint8_t  mydata[1000];
 
 //Talvez deixar só o sendjob
@@ -64,15 +66,15 @@ static osjob_t sendjob;
 
 // Schedule TX every this many seconds (might become longer due to duty
 // cycle limitations).
-const unsigned TX_INTERVAL = 30; //Padrão 60
+const unsigned TX_INTERVAL = 5; //Padrão 60
 
 #ifdef heltec
 //Pin mapping heltec
 const lmic_pinmap lmic_pins = {
-  .nss = 18,//10,
+  .nss = 18,
   .rxtx = LMIC_UNUSED_PIN,
-  .rst = 14,//9,
-  .dio = {26, 33, 32},//{2, 6, 7},
+  .rst = 14,
+  .dio = {26, 33, 32},
 };
 #else
 // Pin mapping Dragino
@@ -94,17 +96,23 @@ void do_send(osjob_t* j) {
   if (LMIC.opmode & OP_TXRXPEND) {
     Serial.println(F("OP_TXRXPEND, not sending"));
   } else {
-    //resto = contador % 2;
-    //if (resto == 1) {
-    //  dtostrf(0, 5, 2, (char*)mydata);
-    //}
-    //else{
-    //  dtostrf(1, 5, 2, (char*)mydata);
-    //}
+    resto = contador % 2;
+    if (resto == 1) {
+      //dtostrf(0, 5, 2, (char*)mydata);
+      memcpy(mydata, "I", sizeof(mydata));
+      //for (int i = 0; i < tamanho_vetor; i++){
+      //    mydata[i] = (uint8_t) "2";
+      //}
+      //Serial.println(mydata);
+    }
+    else{
+      //dtostrf(1, 5, 2, (char*)mydata);
+      memcpy(mydata, "P", sizeof(mydata));
+      //for (int i = 0; i < tamanho_vetor; i++){
+      //    mydata[i] = (uint8_t) "1";
+      //}
+    }
    
-    memcpy(mydata, "azul", sizeof(mydata));
-    //mydata = "Teste2";
-    
     // Prepare transmission at the next possible time.
     LMIC_setTxData2(1, mydata, strlen((char*) mydata), 0);
     //LMIC_setTxData();
@@ -112,6 +120,7 @@ void do_send(osjob_t* j) {
     Serial.println("Packet queued");
     Serial.print("TX nº: ");
     Serial.println(contador);
+    Serial.println((char*)mydata);
     contador++;
     Serial.println(LMIC.freq);
     //Serial.print("Temperatura = ");
@@ -123,7 +132,7 @@ void onEvent (ev_t ev) {
   //sleep(5);
   Serial.print(os_getTime());
   Serial.print(": ");
-  Serial.println("EV: ");
+  Serial.print("EV: ");
   Serial.println(ev);
   switch (ev) {
     case EV_SCAN_TIMEOUT:
@@ -131,6 +140,7 @@ void onEvent (ev_t ev) {
       break;
     case EV_BEACON_FOUND:
       Serial.println("EV_BEACON_FOUND");
+      //LMIC_sendAlive();
       break;
     case EV_BEACON_MISSED:
       Serial.println("EV_BEACON_MISSED");
@@ -143,6 +153,8 @@ void onEvent (ev_t ev) {
       break;
     case EV_JOINED:
       Serial.println("EV_JOINED");
+      //LMIC_setPingable(1);
+      //Serial.println("SCANNING...");
       break;
     case EV_RFU1:
       Serial.println("EV_RFU1");
@@ -190,6 +202,7 @@ void onEvent (ev_t ev) {
 }
 
 void setup() {
+  //SPI.begin(5, 19, 27);
   Serial.begin(115200); //Talvez alterar para 115200
   
   //analogReference(INTERNAL); // Talvez comentar
@@ -232,7 +245,7 @@ void setup() {
   LMIC.dn2Dr = DR_SF9;
 
   // Set data rate and transmit power (note: txpow seems to be ignored by the library)
-  LMIC_setDrTxpow(DR_SF9, 14); // Ver se GW está no 10
+  LMIC_setDrTxpow(DR_SF10, 14); // Ver se GW está no 10; 14 é 14dBM
 
   //Deixa canal único
   //for (int i = 1; i < 64; i++)
@@ -280,7 +293,8 @@ void loop() {
   //Aguarda resposta para TTN retransmitir ao dispositivo
   os_runloop_once();
   #else
-  //Heltec não abre a janela de RX. Causa desconehcida
+  //Heltec não abre a janela de RX. Causa desconehcida. BW 5000
+  //os_runloop_once();
   delay(TX_INTERVAL * 1000);
   LMIC_clrTxData();
   do_send(&sendjob);
