@@ -57,8 +57,8 @@ void os_getDevKey (u1_t* buf) { }
 
 //Limite 52 bytes
 //static uint8_t  mydata[] = "TesteTesteTesteTesteTesteTesteTesteTesteTesteTesteTes";
-int tamanho_vetor = 52;
-static uint8_t  mydata[1000];
+int tamanho_vetor = 51;
+static uint8_t  mydata[51];
 
 //Talvez deixar só o sendjob
 //static osjob_t initjob, sendjob, blinkjob;
@@ -66,7 +66,7 @@ static osjob_t sendjob;
 
 // Schedule TX every this many seconds (might become longer due to duty
 // cycle limitations).
-const unsigned TX_INTERVAL = 5; //Padrão 60
+const unsigned TX_INTERVAL = 30; //Padrão 60
 
 #ifdef heltec
 //Pin mapping heltec
