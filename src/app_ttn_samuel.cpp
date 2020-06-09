@@ -2,7 +2,23 @@
 #include <lmic.h>
 #include <hal/hal.h>
 #include <SPI.h>
+#include <DHT.h>
+#include "heltec.h"
 //#include "TheThingsNetwork.h"
+
+
+//DHT
+#define DHTPIN 13 // A2 no Arduíno
+#define DHTTYPE DHT11 // DHT 11
+ 
+// Conecte pino 1 do sensor (esquerda) ao +5V
+// Conecte pino 2 do sensor ao pino de dados definido em seu Arduino
+// Conecte pino 4 do sensor ao GND
+// Conecte o resistor de 10K entre pin 2 (dados) 
+// e ao pino 1 (VCC) do sensor
+DHT dht(DHTPIN, DHTTYPE);
+
+
 
 //Por padrão, o código usa dragino. Se usar Heltec, descomentar linah abaixo.
 #define heltec
@@ -66,7 +82,7 @@ static osjob_t sendjob;
 
 // Schedule TX every this many seconds (might become longer due to duty
 // cycle limitations).
-const unsigned TX_INTERVAL = 30; //Padrão 60
+const unsigned TX_INTERVAL = 300; //Padrão 60
 
 #ifdef heltec
 //Pin mapping heltec
@@ -91,15 +107,70 @@ void do_send(osjob_t* j) {
   //Envia Temperatura
   //dtostrf(temperatura, 5, 2, (char*)mydata);
 
+  //DHT
+  String myString;
+  delay(TX_INTERVAL * 1000);
+  Heltec.display->clear();
+  // A leitura da temperatura e umidade pode levar 250ms!
+  // O atraso do sensor pode chegar a 2 segundos.
+  float h = dht.readHumidity();
+  float t = dht.readTemperature();
+  // testa se retorno é valido, caso contrário algo está errado.
+  if (isnan(t) || isnan(h)) 
+  {
+    Serial.println("Failed to read from DHT");
+  } 
+  else
+  {
+    Serial.print("Umidade: ");
+    Serial.print(h);
+    Serial.print(" - ");
+    Serial.print("Temperatura: ");
+    Serial.print(t);
+    Serial.println(" *C");
+    myString = String(t);
+    myString = myString + " ºC";
+    Heltec.display->setFont(ArialMT_Plain_10);
+    Heltec.display->drawString(0, 0, "Temperatura");
+    Heltec.display->setFont(ArialMT_Plain_24);
+    Heltec.display->drawString(0, 15, myString);
+    myString = "Umidade: ";
+    myString = myString + String(h);
+    myString = myString + " %";
+    Heltec.display->setFont(ArialMT_Plain_10);
+    Heltec.display->drawString(0, 50, myString);
+    Heltec.display->display();
+    
+  }
+  if (t > 15){
+    //digitalWrite(2, HIGH);
+    //digitalWrite(3,LOW);
+  }else if(t >= 15 || t < 20){
+    //digitalWrite(2, HIGH);
+    //digitalWrite(3,HIGH);
+  }else{
+    //digitalWrite(2, LOW);
+    //digitalWrite(3,HIGH);
+  }
+
 
   // Check if there is not a current TX/RX job running
   if (LMIC.opmode & OP_TXRXPEND) {
     Serial.println(F("OP_TXRXPEND, not sending"));
   } else {
     resto = contador % 2;
+    
+    //MyString é o DHT
+    myString = "Temp: ";
+    myString = myString + String(t);
+    myString = myString + " ºC - ";
+    myString = myString + "Umid: ";
+    myString = myString + String(h);
+    myString = myString + " %";
+    const void * text = myString.c_str();
     if (resto == 1) {
       //dtostrf(0, 5, 2, (char*)mydata);
-      memcpy(mydata, "I", sizeof(mydata));
+      memcpy(mydata, text, sizeof(mydata));
       //for (int i = 0; i < tamanho_vetor; i++){
       //    mydata[i] = (uint8_t) "2";
       //}
@@ -107,7 +178,7 @@ void do_send(osjob_t* j) {
     }
     else{
       //dtostrf(1, 5, 2, (char*)mydata);
-      memcpy(mydata, "P", sizeof(mydata));
+      memcpy(mydata, text, sizeof(mydata));
       //for (int i = 0; i < tamanho_vetor; i++){
       //    mydata[i] = (uint8_t) "1";
       //}
@@ -202,6 +273,22 @@ void onEvent (ev_t ev) {
 }
 
 void setup() {
+
+  //Inicialização DHT
+  Heltec.begin(true, false, true);
+ 
+  Heltec.display->setContrast(255);
+  Heltec.display->clear();
+  
+  Heltec.display->setFont(ArialMT_Plain_16);
+  Heltec.display->drawString(0, 0, "Ligando sensor...");
+  Heltec.display->display();
+
+  Serial.begin(9600);
+  Serial.println("DHTxx test!");
+  dht.begin();
+
+  //Inicialização Lora
   //SPI.begin(5, 19, 27);
   Serial.begin(115200); //Talvez alterar para 115200
   
@@ -248,19 +335,19 @@ void setup() {
   LMIC_setDrTxpow(DR_SF10, 14); // Ver se GW está no 10; 14 é 14dBM
 
   //Deixa canal único
-  //for (int i = 1; i < 64; i++)
-  //{
-  //  LMIC_disableChannel(i);  // only the first channel 902.3Mhz works now.
-  //  Serial.println("Desabilitando canal ");
-  //}
+  for (int i = 1; i < 64; i++)
+  {
+    LMIC_disableChannel(i);  // only the first channel 902.3Mhz works now.
+    Serial.println("Desabilitando canal ");
+  }
 
   //Desabilita os canais desnecessários dos Gateways de Caxias.
   
-  for (int i = 0; i < 7; i++)
-  {
-    LMIC_disableChannel(i);  
-    Serial.println("Desabilitando canal ");
-  }
+  //for (int i = 0; i < 7; i++)
+  //{
+  //  LMIC_disableChannel(i);  
+  //  Serial.println("Desabilitando canal ");
+  //}
   
   for (int i = 15; i < 63; i++)
   {
@@ -307,4 +394,7 @@ void loop() {
   //Retorna valores
   //temp_lida = analogRead(LM35);
   //temperatura = temp_lida * 0.1075268817204301;
+
+
+  
 }
