@@ -8,14 +8,10 @@
 
 
 //DHT
-#define DHTPIN 13 // A2 no Arduíno
+#define DHTPIN 13 // Pino 13 do Hletec
 #define DHTTYPE DHT11 // DHT 11
  
-// Conecte pino 1 do sensor (esquerda) ao +5V
-// Conecte pino 2 do sensor ao pino de dados definido em seu Arduino
-// Conecte pino 4 do sensor ao GND
-// Conecte o resistor de 10K entre pin 2 (dados) 
-// e ao pino 1 (VCC) do sensor
+// Instancia DHT
 DHT dht(DHTPIN, DHTTYPE);
 
 
@@ -24,9 +20,9 @@ DHT dht(DHTPIN, DHTTYPE);
 #define heltec
 
 //Define qual dos dispositivos será compilado. Somente um por vez pode ser compilado
-#define ttn_dragino 0
-#define ttn_heltec_forte 1
-#define ttn_heltec_fraco 0
+//#define ttn_dragino 
+#define ttn_heltec_forte 
+//#define ttn_heltec_fraco 
 
 // LoRaWAN NwkSKey, network session key
 // This is the default Semtech key, which is used by the prototype TTN
@@ -43,25 +39,24 @@ DHT dht(DHTPIN, DHTTYPE);
 // See http://thethingsnetwork.org/wiki/AddressSpace
 //static const u4_t DEVADDR = 0x2603149D;
 
-#ifdef defined (ttn_dragino)
+#ifdef ttn_dragino
   static const PROGMEM u1_t NWKSKEY[16] = { 0x8B, 0x19, 0x63, 0xA9, 0x98, 0x9C, 0xEC, 0x9B, 0xC6, 0x7D, 0xF7, 0xD8, 0xD3, 0x8A, 0x40, 0xE2 };
   static const u1_t PROGMEM APPSKEY[16] = { 0x7B, 0x2D, 0x93, 0xEA, 0x74, 0x34, 0x9C, 0x65, 0x55, 0x2A, 0xB7, 0xA7, 0x15, 0xB9, 0x3D, 0x4C };
   static const u4_t DEVADDR = 0x2603167B;
-#elif defined (ttn_heltec_forte)
+#endif
+#ifdef ttn_heltec_forte
   static const PROGMEM u1_t NWKSKEY[16] = { 0x2C, 0xB4, 0xDB, 0xFF, 0x01, 0xB8, 0x46, 0x2E, 0xEF, 0x82, 0x5F, 0xFC, 0x89, 0x83, 0xB0, 0xD0 };
   static const u1_t PROGMEM APPSKEY[16] = { 0xBF, 0xEE, 0x49, 0x92, 0x7E, 0x7F, 0x4C, 0x88, 0x79, 0xE7, 0xA7, 0x71, 0x0F, 0x40, 0xD5, 0x64 };
   static const u4_t DEVADDR = 0x26031448;
-#elif defined (ttn_heltec_fraco)
+#endif
+#ifdef ttn_heltec_fraco
   static const PROGMEM u1_t NWKSKEY[16] = { 0xF7, 0x0F, 0x22, 0x84, 0x5C, 0x07, 0x50, 0x84, 0x31, 0x5C, 0x0D, 0x5B, 0x54, 0x96, 0xBC, 0x3F };
   static const u1_t PROGMEM APPSKEY[16] = { 0x1C, 0xF6, 0xAC, 0x56, 0x01, 0x38, 0xA7, 0xCC, 0xD7, 0xC1, 0x2E, 0xF9, 0x0B, 0x1A, 0x54, 0x52 };
   static const u4_t DEVADDR = 0x26031DAA;
 #endif
 
-//Para ler sensor
-//static const int LM35 = 0;
-//int temp_lida = 0;
-//float temperatura;
 int contador = 0;
+//Usado para diferenciar par e ímpar
 int resto = 0;
 
 // These callbacks are only used in over-the-air activation, so they are
@@ -71,8 +66,7 @@ void os_getArtEui (u1_t* buf) { }
 void os_getDevEui (u1_t* buf) { }
 void os_getDevKey (u1_t* buf) { }
 
-//Limite 52 bytes
-//static uint8_t  mydata[] = "TesteTesteTesteTesteTesteTesteTesteTesteTesteTesteTes";
+//Limite 51 bytes
 int tamanho_vetor = 51;
 static uint8_t  mydata[51];
 
@@ -82,7 +76,7 @@ static osjob_t sendjob;
 
 // Schedule TX every this many seconds (might become longer due to duty
 // cycle limitations).
-const unsigned TX_INTERVAL = 300; //Padrão 60
+const unsigned TX_INTERVAL = 600; //Padrão 60
 
 #ifdef heltec
 //Pin mapping heltec
@@ -104,17 +98,21 @@ const lmic_pinmap lmic_pins = {
 
 void do_send(osjob_t* j) {
 
-  //Envia Temperatura
-  //dtostrf(temperatura, 5, 2, (char*)mydata);
-
-  //DHT
+  // Parâmetros DHT
+  // Cria string que armazenará os dados de temperatura e umidade
   String myString;
-  delay(TX_INTERVAL * 1000);
+  //Delay para leitura dos dados
+  //delay(TX_INTERVAL * 1000);
+  
+  //Limpa display
   Heltec.display->clear();
   // A leitura da temperatura e umidade pode levar 250ms!
   // O atraso do sensor pode chegar a 2 segundos.
+  
+  // Armazena dados da temperatura e umidade
   float h = dht.readHumidity();
   float t = dht.readTemperature();
+  
   // testa se retorno é valido, caso contrário algo está errado.
   if (isnan(t) || isnan(h)) 
   {
@@ -122,12 +120,7 @@ void do_send(osjob_t* j) {
   } 
   else
   {
-    Serial.print("Umidade: ");
-    Serial.print(h);
-    Serial.print(" - ");
-    Serial.print("Temperatura: ");
-    Serial.print(t);
-    Serial.println(" *C");
+   //Mostra os dados no display
     myString = String(t);
     myString = myString + " ºC";
     Heltec.display->setFont(ArialMT_Plain_10);
@@ -160,29 +153,40 @@ void do_send(osjob_t* j) {
   } else {
     resto = contador % 2;
     
-    //MyString é o DHT
+    //Usa Mystring para formar um único texto para escrita
+    //na console e transmissão para LoRa
     myString = "Temp: ";
     myString = myString + String(t);
     myString = myString + " ºC - ";
     myString = myString + "Umid: ";
     myString = myString + String(h);
     myString = myString + " %";
+    
+    //Printa na Serial
+    Serial.println(myString);
+
+    //Converte para const void para copair para memória do LoRa
     const void * text = myString.c_str();
-    if (resto == 1) {
-      //dtostrf(0, 5, 2, (char*)mydata);
-      memcpy(mydata, text, sizeof(mydata));
-      //for (int i = 0; i < tamanho_vetor; i++){
-      //    mydata[i] = (uint8_t) "2";
-      //}
-      //Serial.println(mydata);
-    }
-    else{
-      //dtostrf(1, 5, 2, (char*)mydata);
-      memcpy(mydata, text, sizeof(mydata));
-      //for (int i = 0; i < tamanho_vetor; i++){
-      //    mydata[i] = (uint8_t) "1";
-      //}
-    }
+
+    //Copia dados para memória do LoRa
+    memcpy(mydata, text, sizeof(mydata));
+
+    // Condicional abaixo utilziado para variar dados entre pares e ímpares
+    // if (resto == 1) {
+    //   //dtostrf(0, 5, 2, (char*)mydata);
+    //   memcpy(mydata, text, sizeof(mydata));
+    //   //for (int i = 0; i < tamanho_vetor; i++){
+    //   //    mydata[i] = (uint8_t) "2";
+    //   //}
+    //   //Serial.println(mydata);
+    // }
+    // else{
+    //   //dtostrf(1, 5, 2, (char*)mydata);
+    //   memcpy(mydata, text, sizeof(mydata));
+    //   //for (int i = 0; i < tamanho_vetor; i++){
+    //   //    mydata[i] = (uint8_t) "1";
+    //   //}
+    // } 
    
     // Prepare transmission at the next possible time.
     LMIC_setTxData2(1, mydata, strlen((char*) mydata), 0);
@@ -274,7 +278,7 @@ void onEvent (ev_t ev) {
 
 void setup() {
 
-  //Inicialização DHT
+  //Inicialização Display
   Heltec.begin(true, false, true);
  
   Heltec.display->setContrast(255);
@@ -284,8 +288,11 @@ void setup() {
   Heltec.display->drawString(0, 0, "Ligando sensor...");
   Heltec.display->display();
 
+  //Inicialização console
   Serial.begin(9600);
   Serial.println("DHTxx test!");
+  
+  //Inicialização DHT
   dht.begin();
 
   //Inicialização Lora
@@ -332,7 +339,7 @@ void setup() {
   LMIC.dn2Dr = DR_SF9;
 
   // Set data rate and transmit power (note: txpow seems to be ignored by the library)
-  LMIC_setDrTxpow(DR_SF10, 14); // Ver se GW está no 10; 14 é 14dBM
+  LMIC_setDrTxpow(DR_SF10, 18); // Ver se GW está no 10; 14 é 14dBM
 
   //Deixa canal único
   for (int i = 1; i < 64; i++)
