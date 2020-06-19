@@ -6,7 +6,6 @@
 #include "heltec.h"
 //#include "TheThingsNetwork.h"
 
-
 //DHT
 #define DHTPIN 13 // Pino 13 do Hletec
 #define DHTTYPE DHT11 // DHT 11
@@ -76,7 +75,7 @@ static osjob_t sendjob;
 
 // Schedule TX every this many seconds (might become longer due to duty
 // cycle limitations).
-const unsigned TX_INTERVAL = 3; //Padrão 60
+const unsigned TX_INTERVAL = 180; //Padrão 60
 
 #ifdef heltec
 //Pin mapping heltec
@@ -395,12 +394,5 @@ void loop() {
   #endif
   //Serial.print("Frequencia: ");
   //Serial.println(LMIC.freq);
-  
-  //Serial.println("Teste");
-  //Retorna valores
-  //temp_lida = analogRead(LM35);
-  //temperatura = temp_lida * 0.1075268817204301;
-
-
   
 }
