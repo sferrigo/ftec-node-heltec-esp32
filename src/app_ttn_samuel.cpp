@@ -76,7 +76,7 @@ static osjob_t sendjob;
 
 // Schedule TX every this many seconds (might become longer due to duty
 // cycle limitations).
-const unsigned TX_INTERVAL = 600; //Padrão 60
+const unsigned TX_INTERVAL = 3; //Padrão 60
 
 #ifdef heltec
 //Pin mapping heltec
@@ -84,7 +84,7 @@ const lmic_pinmap lmic_pins = {
   .nss = 18,
   .rxtx = LMIC_UNUSED_PIN,
   .rst = 14,
-  .dio = {26, 33, 32},
+  .dio = {26, 35, 34},//era 26,33,32
 };
 #else
 // Pin mapping Dragino
@@ -342,21 +342,21 @@ void setup() {
   LMIC_setDrTxpow(DR_SF10, 18); // Ver se GW está no 10; 14 é 14dBM
 
   //Deixa canal único
-  for (int i = 1; i < 64; i++)
-  {
-    LMIC_disableChannel(i);  // only the first channel 902.3Mhz works now.
-    Serial.println("Desabilitando canal ");
-  }
+  // for (int i = 1; i < 64; i++)
+  // {
+  //   LMIC_disableChannel(i);  // only the first channel 902.3Mhz works now.
+  //   Serial.println("Desabilitando canal ");
+  // }
 
   //Desabilita os canais desnecessários dos Gateways de Caxias.
   
-  //for (int i = 0; i < 7; i++)
-  //{
-  //  LMIC_disableChannel(i);  
-  //  Serial.println("Desabilitando canal ");
-  //}
+  for (int i = 0; i < 7; i++)
+  {
+    LMIC_disableChannel(i);  
+    Serial.println("Desabilitando canal ");
+  }
   
-  for (int i = 15; i < 63; i++)
+  for (int i = 16; i < 63; i++) //alterado i de 15 para 16 para fechar envios a cada 10 min
   {
     LMIC_disableChannel(i);  
     Serial.println("Desabilitando canal ");
@@ -387,13 +387,12 @@ void loop() {
   //Aguarda resposta para TTN retransmitir ao dispositivo
   os_runloop_once();
   #else
-  //Heltec não abre a janela de RX. Causa desconehcida. BW 5000
-  //os_runloop_once();
-  delay(TX_INTERVAL * 1000);
-  LMIC_clrTxData();
-  do_send(&sendjob);
+  //Heltec não abre a janela de RX. Causa desconehcida. BW 500
+  os_runloop_once();
+  //delay(TX_INTERVAL * 1000);
+  //LMIC_clrTxData();
+  //do_send(&sendjob);
   #endif
-  
   //Serial.print("Frequencia: ");
   //Serial.println(LMIC.freq);
   
