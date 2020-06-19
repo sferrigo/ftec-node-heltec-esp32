@@ -84,7 +84,7 @@ const lmic_pinmap lmic_pins = {
   .nss = 18,
   .rxtx = LMIC_UNUSED_PIN,
   .rst = 14,
-  .dio = {26, 35, 34},//era 26,33,32
+  .dio = {26, 35, 34}, //antigo 26,33,32
 };
 #else
 // Pin mapping Dragino
