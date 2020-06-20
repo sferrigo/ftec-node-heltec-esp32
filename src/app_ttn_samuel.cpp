@@ -172,7 +172,6 @@ void do_send(osjob_t* j) {
     Serial.print("TX nº: ");
     Serial.println(contador);
     Serial.println((char*)mydata);
-    contador++;
     Serial.println(LMIC.freq);
     //Serial.print("Temperatura = ");
     //Serial.print(temperatura);
@@ -206,6 +205,9 @@ void do_send(osjob_t* j) {
       Heltec.display->display();
       
     }
+
+    //incrementa contador
+    contador++;
   }
 }
 void onEvent (ev_t ev) {
