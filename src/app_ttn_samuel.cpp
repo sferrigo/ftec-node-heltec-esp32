@@ -13,8 +13,6 @@
 // Instancia DHT
 DHT dht(DHTPIN, DHTTYPE);
 
-
-
 //Por padrão, o código usa dragino. Se usar Heltec, descomentar linah abaixo.
 #define heltec
 
@@ -112,28 +110,7 @@ void do_send(osjob_t* j) {
   float h = dht.readHumidity();
   float t = dht.readTemperature();
   
-  // testa se retorno é valido, caso contrário algo está errado.
-  if (isnan(t) || isnan(h)) 
-  {
-    Serial.println("Failed to read from DHT");
-  } 
-  else
-  {
-   //Mostra os dados no display
-    myString = String(t);
-    myString = myString + " ºC";
-    Heltec.display->setFont(ArialMT_Plain_10);
-    Heltec.display->drawString(0, 0, "Temperatura");
-    Heltec.display->setFont(ArialMT_Plain_24);
-    Heltec.display->drawString(0, 15, myString);
-    myString = "Umidade: ";
-    myString = myString + String(h);
-    myString = myString + " %";
-    Heltec.display->setFont(ArialMT_Plain_10);
-    Heltec.display->drawString(0, 50, myString);
-    Heltec.display->display();
-    
-  }
+  //Acende luzes arduino
   if (t > 15){
     //digitalWrite(2, HIGH);
     //digitalWrite(3,LOW);
@@ -199,7 +176,36 @@ void do_send(osjob_t* j) {
     Serial.println(LMIC.freq);
     //Serial.print("Temperatura = ");
     //Serial.print(temperatura);
-   //Serial.println(" *C");
+    //Serial.println(" *C");
+
+    // testa se retorno é valido, caso contrário algo está errado.
+    if (isnan(t) || isnan(h)) 
+    {
+      Serial.println("Failed to read from DHT");
+    } 
+    else
+    {
+      //Mostra os dados no display
+      myString = String(t);
+      myString = myString + " ºC";
+      Heltec.display->setFont(ArialMT_Plain_10);
+      Heltec.display->drawString(0, 0, "Temperatura");
+      Heltec.display->setFont(ArialMT_Plain_24);
+      Heltec.display->drawString(0, 10, myString);
+      myString = "Umidade: ";
+      myString = myString + String(h);
+      myString = myString + " %";
+      Heltec.display->setFont(ArialMT_Plain_10);
+      Heltec.display->drawString(0, 40, myString);
+      Heltec.display->setFont(ArialMT_Plain_10);
+      myString = "Frq: ";
+      myString = myString + String((LMIC.freq)/1000);
+      myString = myString + " kHz - ";
+      myString = myString + String(contador);
+      Heltec.display->drawString(0, 50, myString);
+      Heltec.display->display();
+      
+    }
   }
 }
 void onEvent (ev_t ev) {
