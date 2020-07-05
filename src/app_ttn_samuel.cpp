@@ -3,23 +3,33 @@
 #include <hal/hal.h>
 #include <SPI.h>
 #include <DHT.h>
-#include "heltec.h"
 //#include "TheThingsNetwork.h"
+//Descomentar se usar heltec
+//#include "heltec.h"
 
-//DHT
-#define DHTPIN 13 // Pino 13 do Hletec
+//Por padrão, o código usa dragino. Se usar Heltec, descomentar linha abaixo.
+//#define heltec
+
+//Configurações DHT
+#ifdef heltec
+  #define DHTPIN 13 // Pino 13 do Heltec
+#else
+  #define DHTPIN A1 //Pino A1 Dragino/Arduíno
+#endif
 #define DHTTYPE DHT11 // DHT 11
  
 // Instancia DHT
 DHT dht(DHTPIN, DHTTYPE);
 
-//Por padrão, o código usa dragino. Se usar Heltec, descomentar linah abaixo.
-#define heltec
-
 //Define qual dos dispositivos será compilado. Somente um por vez pode ser compilado
 //#define ttn_dragino 
 #define ttn_heltec_forte 
 //#define ttn_heltec_fraco 
+
+//Define canais utilizados. Somente um por vez pode ser utilizado
+//#define canal_unico //Canal único usado no Heltec Single Gateway de sferrigo
+#define ttn_caxias_915 //Canais usados na TTN Caxias e canal 915.1 configurado no SGW
+//#define ttn_caxias //Canais usados na TTN Caxias
 
 // LoRaWAN NwkSKey, network session key
 // This is the default Semtech key, which is used by the prototype TTN
@@ -73,7 +83,7 @@ static osjob_t sendjob;
 
 // Schedule TX every this many seconds (might become longer due to duty
 // cycle limitations).
-const unsigned TX_INTERVAL = 180; //Padrão 60
+const unsigned TX_INTERVAL = 5; //Padrão 60
 
 #ifdef heltec
 //Pin mapping heltec
@@ -101,10 +111,12 @@ void do_send(osjob_t* j) {
   //Delay para leitura dos dados
   //delay(TX_INTERVAL * 1000);
   
-  //Limpa display
-  Heltec.display->clear();
-  // A leitura da temperatura e umidade pode levar 250ms!
-  // O atraso do sensor pode chegar a 2 segundos.
+  #ifdef heltec
+    //Limpa display
+    Heltec.display->clear();
+    // A leitura da temperatura e umidade pode levar 250ms!
+    // O atraso do sensor pode chegar a 2 segundos.
+  #endif
   
   // Armazena dados da temperatura e umidade
   float h = dht.readHumidity();
@@ -184,26 +196,27 @@ void do_send(osjob_t* j) {
     } 
     else
     {
-      //Mostra os dados no display
-      myString = String(t);
-      myString = myString + " ºC";
-      Heltec.display->setFont(ArialMT_Plain_10);
-      Heltec.display->drawString(0, 0, "Temperatura");
-      Heltec.display->setFont(ArialMT_Plain_24);
-      Heltec.display->drawString(0, 10, myString);
-      myString = "Umidade: ";
-      myString = myString + String(h);
-      myString = myString + " %";
-      Heltec.display->setFont(ArialMT_Plain_10);
-      Heltec.display->drawString(0, 40, myString);
-      Heltec.display->setFont(ArialMT_Plain_10);
-      myString = "Frq: ";
-      myString = myString + String((LMIC.freq)/1000);
-      myString = myString + " kHz - ";
-      myString = myString + String(contador);
-      Heltec.display->drawString(0, 50, myString);
-      Heltec.display->display();
-      
+      #ifdef heltec
+        //Mostra os dados no display
+        myString = String(t);
+        myString = myString + " ºC";
+        Heltec.display->setFont(ArialMT_Plain_10);
+        Heltec.display->drawString(0, 0, "Temperatura");
+        Heltec.display->setFont(ArialMT_Plain_24);
+        Heltec.display->drawString(0, 10, myString);
+        myString = "Umidade: ";
+        myString = myString + String(h);
+        myString = myString + " %";
+        Heltec.display->setFont(ArialMT_Plain_10);
+        Heltec.display->drawString(0, 40, myString);
+        Heltec.display->setFont(ArialMT_Plain_10);
+        myString = "Frq: ";
+        myString = myString + String((LMIC.freq)/1000);
+        myString = myString + " kHz - ";
+        myString = myString + String(contador);
+        Heltec.display->drawString(0, 50, myString);
+        Heltec.display->display();
+      #endif
     }
 
     //incrementa contador
@@ -285,15 +298,17 @@ void onEvent (ev_t ev) {
 
 void setup() {
 
-  //Inicialização Display
-  Heltec.begin(true, false, true);
- 
-  Heltec.display->setContrast(255);
-  Heltec.display->clear();
+  #ifdef heltec
+    //Inicialização Display
+    Heltec.begin(true, false, true);
   
-  Heltec.display->setFont(ArialMT_Plain_16);
-  Heltec.display->drawString(0, 0, "Ligando sensor...");
-  Heltec.display->display();
+    Heltec.display->setContrast(255);
+    Heltec.display->clear();
+    
+    Heltec.display->setFont(ArialMT_Plain_16);
+    Heltec.display->drawString(0, 0, "Ligando sensor...");
+    Heltec.display->display();
+  #endif
 
   //Inicialização console
   Serial.begin(9600);
@@ -348,40 +363,44 @@ void setup() {
   // Set data rate and transmit power (note: txpow seems to be ignored by the library)
   LMIC_setDrTxpow(DR_SF10, 18); // Ver se GW está no 10; 14 é 14dBM
 
-  //Deixa canal único
-  // for (int i = 1; i < 64; i++)
-  // {
-  //   LMIC_disableChannel(i);  // only the first channel 902.3Mhz works now.
-  //   Serial.println("Desabilitando canal ");
-  // }
-
-  //Desabilita os canais desnecessários dos Gateways de Caxias.
+  #ifdef canal_unico
+    //Deixa canal único
+    for (int i = 1; i < 64; i++)
+    {
+      LMIC_disableChannel(i);  // only the first channel 902.3Mhz works now.
+      Serial.println("Desabilitando canal ");
+    }
+  #endif
   
-  for (int i = 0; i < 7; i++)
-  {
+  #ifdef ttn_caxias_915
+    //Desabilita os canais desnecessários dos Gateways de Caxias.
+    for (int i = 0; i < 7; i++)
+    {
+      LMIC_disableChannel(i);  
+      Serial.println("Desabilitando canal ");
+    }
+    
+    for (int i = 16; i < 63; i++) //alterado i de 15 para 16 para fechar envios a cada 10 min
+    {
+      LMIC_disableChannel(i);  
+      Serial.println("Desabilitando canal ");
+    }
+  #endif
+
+  #ifdef ttn_caxias
+    Original. Tem que alterar lorabase.h para usar essa sequencia
+    for (int i = 0; i < 8; i++)
+    {
     LMIC_disableChannel(i);  
     Serial.println("Desabilitando canal ");
-  }
-  
-  for (int i = 16; i < 63; i++) //alterado i de 15 para 16 para fechar envios a cada 10 min
-  {
+    }
+
+    for (int i = 16; i < 71; i++)
+    {
     LMIC_disableChannel(i);  
     Serial.println("Desabilitando canal ");
-  }
-  
-
-  //Original. Tem que alterar lorabase.h para usar essa sequencia
-  //for (int i = 0; i < 8; i++)
-  //{
-  //  LMIC_disableChannel(i);  
-  //  Serial.println("Desabilitando canal ");
-  //}
-
-  //for (int i = 16; i < 71; i++)
-  //{
-  //  LMIC_disableChannel(i);  
-  //  Serial.println("Desabilitando canal ");
-  //}
+    }
+  #endif
 
   // Start job
   do_send(&sendjob);
