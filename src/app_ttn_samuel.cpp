@@ -5,10 +5,10 @@
 #include <DHT.h>
 //#include "TheThingsNetwork.h"
 //Descomentar se usar heltec
-//#include "heltec.h"
+#include "heltec.h"
 
 //Por padrão, o código usa dragino. Se usar Heltec, descomentar linha abaixo.
-//#define heltec
+#define heltec
 
 //Configurações DHT
 #ifdef heltec
@@ -28,8 +28,8 @@ DHT dht(DHTPIN, DHTTYPE);
 
 //Define canais utilizados. Somente um por vez pode ser utilizado
 //#define canal_unico //Canal único usado no Heltec Single Gateway de sferrigo
-#define ttn_caxias_915 //Canais usados na TTN Caxias e canal 915.1 configurado no SGW
-//#define ttn_caxias //Canais usados na TTN Caxias
+//#define ttn_caxias_915 //Canais usados na TTN Caxias e canal 915.1 configurado no SGW
+#define ttn_caxias //Canais usados na TTN Caxias
 
 // LoRaWAN NwkSKey, network session key
 // This is the default Semtech key, which is used by the prototype TTN
@@ -83,7 +83,7 @@ static osjob_t sendjob;
 
 // Schedule TX every this many seconds (might become longer due to duty
 // cycle limitations).
-const unsigned TX_INTERVAL = 5; //Padrão 60
+const unsigned TX_INTERVAL = 60; //Padrão 60
 
 #ifdef heltec
 //Pin mapping heltec
@@ -141,15 +141,21 @@ void do_send(osjob_t* j) {
   } else {
     resto = contador % 2;
     
-    //Usa Mystring para formar um único texto para escrita
-    //na console e transmissão para LoRa
-    myString = "Temp: ";
-    myString = myString + String(t);
-    myString = myString + " ºC - ";
-    myString = myString + "Umid: ";
-    myString = myString + String(h);
-    myString = myString + " %";
-    
+    //Se não medir temperatura e umidade escreve msg de erro
+    if (isnan(t) || isnan(h)) {
+      myString = "Erro na medição!";
+    }
+    else {
+      //Usa Mystring para formar um único texto para escrita
+      //na console e transmissão para LoRa
+      myString = "Temp: ";
+      myString = myString + String(t);
+      myString = myString + " ºC - ";
+      myString = myString + "Umid: ";
+      myString = myString + String(h);
+      myString = myString + " %";
+    }
+
     //Printa na Serial
     Serial.println(myString);
 
@@ -193,6 +199,18 @@ void do_send(osjob_t* j) {
     if (isnan(t) || isnan(h)) 
     {
       Serial.println("Failed to read from DHT");
+      #ifdef heltec
+        Heltec.display->setFont(ArialMT_Plain_16);
+        Heltec.display->drawString(0, 0, "Sensor não ");
+        Heltec.display->drawString(0, 15, "localizado!");
+        Heltec.display->setFont(ArialMT_Plain_10);
+        myString = "Frq: ";
+        myString = myString + String((LMIC.freq)/1000);
+        myString = myString + " kHz - ";
+        myString = myString + String(contador);
+        Heltec.display->drawString(0, 50, myString);
+        Heltec.display->display();
+      #endif
     } 
     else
     {
@@ -264,11 +282,16 @@ void onEvent (ev_t ev) {
       Serial.println("EV_TXCOMPLETE (includes waiting for RX windows)");
       if (LMIC.dataLen) {
         // data received in rx slot after tx
+        Serial.println("==========================================");
         Serial.print("Data Received: ");
         Serial.write(LMIC.frame + LMIC.dataBeg, LMIC.dataLen);
+        Serial.println("==========================================");
         Serial.println();
       }else{
-        Serial.println("Nada recebido");
+        Serial.println("==========================================");
+        Serial.println("Nada recebido!");
+        Serial.println("==========================================");
+        Serial.println();
       }
       // Schedule next transmission
       os_setTimedCallback(&sendjob, os_getTime() + sec2osticks(TX_INTERVAL), do_send);
@@ -388,7 +411,7 @@ void setup() {
   #endif
 
   #ifdef ttn_caxias
-    Original. Tem que alterar lorabase.h para usar essa sequencia
+    //Original. Tem que alterar lorabase.h para usar essa sequencia
     for (int i = 0; i < 8; i++)
     {
     LMIC_disableChannel(i);  
