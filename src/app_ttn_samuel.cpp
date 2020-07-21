@@ -62,9 +62,18 @@ DHT dht(DHTPIN, DHTTYPE);
   static const u4_t DEVADDR = 0x26031DAA;
 #endif
 
+
+
+//Variáveis globais
+//contador de quadros
 int contador = 0;
 //Usado para diferenciar par e ímpar
 int resto = 0;
+// Indicador de recebimento de dados da TTN
+bool recebido = false;
+//Variável que armazena os dados recebidos da TTN
+String dados_recebidos;
+
 
 // These callbacks are only used in over-the-air activation, so they are
 // left empty here (we cannot leave them out completely unless
@@ -141,8 +150,15 @@ void do_send(osjob_t* j) {
   } else {
     resto = contador % 2;
     
+    if (recebido){
+      //Se recebeu dados, grava na variável myString
+      // que transmitirá via Lora o que foi recebido
+      // da TTN e seta varíavel booleana da recebimento para false
+      myString = dados_recebidos;
+      recebido = false;
+    }
     //Se não medir temperatura e umidade escreve msg de erro
-    if (isnan(t) || isnan(h)) {
+    else if (isnan(t) || isnan(h)) {
       myString = "Erro na medição!";
     }
     else {
@@ -285,8 +301,14 @@ void onEvent (ev_t ev) {
         Serial.println("==========================================");
         Serial.print("Data Received: ");
         Serial.write(LMIC.frame + LMIC.dataBeg, LMIC.dataLen);
+        //Armazena dados recebidos na variável dados_recebidos e seta
+        // variável booleana de recebimento de dados da TTN para true 
+        dados_recebidos = (char*) LMIC.frame + LMIC.dataBeg, LMIC.dataLen;
+        Serial.println(dados_recebidos);
+        recebido = true;
         Serial.println("==========================================");
         Serial.println();
+
       }else{
         Serial.println("==========================================");
         Serial.println("Nada recebido!");
@@ -384,7 +406,7 @@ void setup() {
   LMIC.dn2Dr = DR_SF9;
 
   // Set data rate and transmit power (note: txpow seems to be ignored by the library)
-  LMIC_setDrTxpow(DR_SF10, 18); // Ver se GW está no 10; 14 é 14dBM
+  LMIC_setDrTxpow(DR_SF10, 14); // Ver se GW está no 10; 14 é 14dBM
 
   #ifdef canal_unico
     //Deixa canal único
