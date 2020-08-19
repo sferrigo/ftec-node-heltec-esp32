@@ -92,7 +92,7 @@ static osjob_t sendjob;
 
 // Schedule TX every this many seconds (might become longer due to duty
 // cycle limitations).
-const unsigned TX_INTERVAL = 60; //Padrão 60
+const unsigned TX_INTERVAL = 600; //Padrão 60
 
 #ifdef heltec
 //Pin mapping heltec
@@ -155,11 +155,11 @@ void do_send(osjob_t* j) {
       // que transmitirá via Lora o que foi recebido
       // da TTN e seta varíavel booleana da recebimento para false
       myString = dados_recebidos;
-      recebido = false;
+      //recebido = false;
     }
     //Se não medir temperatura e umidade escreve msg de erro
     else if (isnan(t) || isnan(h)) {
-      myString = "Erro na medição!";
+      myString = "Sem dados do sensor!";
     }
     else {
       //Usa Mystring para formar um único texto para escrita
@@ -210,9 +210,30 @@ void do_send(osjob_t* j) {
     //Serial.print("Temperatura = ");
     //Serial.print(temperatura);
     //Serial.println(" *C");
+    
+    //Verifica se dados foram recebidos
+    //em caso positivo, escreve no display
+    //e altera valor de recebido para false
+    if (recebido){
+      #ifdef heltec
+        Heltec.display->setFont(ArialMT_Plain_10);
+        Heltec.display->drawString(0, 0, dados_recebidos);
+        //Heltec.display->drawString(0, 15, "localizado!");
+        Heltec.display->setFont(ArialMT_Plain_10);
+        myString = "Frq: ";
+        myString = myString + String((LMIC.freq)/1000);
+        myString = myString + " kHz - ";
+        myString = myString + String(contador);
+        Heltec.display->drawString(0, 50, myString);
+        Heltec.display->display();
+        recebido = false;
+      #endif
+    }
 
-    // testa se retorno é valido, caso contrário algo está errado.
-    if (isnan(t) || isnan(h)) 
+    // se não foi recebido
+    // testa se retorno do sensor é valido, 
+    // caso contrário algo está errado.
+    else if (isnan(t) || isnan(h)) 
     {
       Serial.println("Failed to read from DHT");
       #ifdef heltec
@@ -227,7 +248,9 @@ void do_send(osjob_t* j) {
         Heltec.display->drawString(0, 50, myString);
         Heltec.display->display();
       #endif
-    } 
+    }
+    //se dados não foram recebidos e está tudo OK com sensor
+    //escreve temp e umidade na tela 
     else
     {
       #ifdef heltec
@@ -434,13 +457,13 @@ void setup() {
 
   #ifdef ttn_caxias
     //Original. Tem que alterar lorabase.h para usar essa sequencia
-    for (int i = 0; i < 8; i++)
+    for (int i = 0; i < 7; i++)
     {
     LMIC_disableChannel(i);  
     Serial.println("Desabilitando canal ");
     }
 
-    for (int i = 16; i < 71; i++)
+    for (int i = 15; i < 71; i++)
     {
     LMIC_disableChannel(i);  
     Serial.println("Desabilitando canal ");
