@@ -457,13 +457,13 @@ void setup() {
 
   #ifdef ttn_caxias
     //Original. Tem que alterar lorabase.h para usar essa sequencia
-    for (int i = 0; i < 7; i++)
+    for (int i = 0; i < 8; i++)
     {
     LMIC_disableChannel(i);  
     Serial.println("Desabilitando canal ");
     }
 
-    for (int i = 15; i < 71; i++)
+    for (int i = 16; i < 71; i++)
     {
     LMIC_disableChannel(i);  
     Serial.println("Desabilitando canal ");
