@@ -1,0 +1,57 @@
+{
+    "name": "MySensors", 
+    "repository": {
+        "url": "https://github.com/mysensors/MySensors.git", 
+        "type": "git"
+    }, 
+    "platforms": [
+        "atmelavr", 
+        "atmelmegaavr", 
+        "atmelsam", 
+        "espressif32", 
+        "espressif8266", 
+        "gd32v", 
+        "infineonxmc", 
+        "intel_arc32", 
+        "kendryte210", 
+        "microchippic32", 
+        "nordicnrf51", 
+        "nordicnrf52", 
+        "ststm32", 
+        "ststm8", 
+        "teensy", 
+        "timsp430"
+    ], 
+    "frameworks": [
+        "arduino"
+    ], 
+    "version": "2.3.2", 
+    "export": {
+        "exclude": [
+            "tests", 
+            "Documentation", 
+            ".mystools", 
+            "projects", 
+            "examples_linux", 
+            "initscripts", 
+            "configure", 
+            ".ci", 
+            "Doxyfile"
+        ]
+    }, 
+    "authors": [
+        {
+            "maintainer": false, 
+            "name": "MySensors", 
+            "url": "https://github.com/mysensors", 
+            "email": "info@mysensors.org"
+        }
+    ], 
+    "keywords": [
+        "framework", 
+        "rf", 
+        "sensor"
+    ], 
+    "id": 548, 
+    "description": "Home Automation Framework. Create your own wireless sensor mesh using nRF24L01+, RFM69 and RFM95 radios running on AVR, ESP32, ESP8266, NRF5x, SAMD, STM32F1 and Teensyduino. Over-the-air updates and MySensors support by 20+ home automation controllers."
+}
