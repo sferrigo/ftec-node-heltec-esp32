@@ -3,12 +3,11 @@
 #include <hal/hal.h>
 #include <SPI.h>
 #include <DHT.h>
-//#include "TheThingsNetwork.h"
-//Descomentar se usar heltec
+#include <CayenneLPP.h>
 #include "heltec.h"
 
-//Por padrão, o código usa dragino. Se usar Heltec, descomentar linha abaixo.
-#define heltec
+#define heltec //Por padrão, o código usa dragino. Se usar Heltec, descomentar linha abaixo.
+#define cayenne // Utilizar o payload Cayenne LPP
 
 //Configurações DHT
 #ifdef heltec
@@ -17,11 +16,6 @@
   #define DHTPIN A1 //Pino A1 Dragino/Arduíno
 #endif
 #define DHTTYPE DHT11 // DHT 11
-
-//Configuracoes luminosidade
-#ifdef heltec
-  #define PINO_LUZ 12 
-#endif
  
 // Instancia DHT
 DHT dht(DHTPIN, DHTTYPE);
@@ -32,9 +26,9 @@ DHT dht(DHTPIN, DHTTYPE);
 //#define ttn_heltec_fraco 
 
 //Define canais utilizados. Somente um por vez pode ser utilizado
-//#define canal_unico //Canal único usado no Heltec Single Gateway de sferrigo
+#define canal_unico //Canal único usado no Heltec Single Gateway de sferrigo
 //#define ttn_caxias_915 //Canais usados na TTN Caxias e canal 915.1 configurado no SGW
-#define ttn_caxias //Canais usados na TTN Caxias
+//#define ttn_caxias //Canais usados na TTN Caxias
 
 // LoRaWAN NwkSKey, network session key
 // This is the default Semtech key, which is used by the prototype TTN
@@ -52,20 +46,15 @@ DHT dht(DHTPIN, DHTTYPE);
 //static const u4_t DEVADDR = 0x2603149D;
 
 #ifdef ttn_dragino
-  static const PROGMEM u1_t NWKSKEY[16] = { 0x8B, 0x19, 0x63, 0xA9, 0x98, 0x9C, 0xEC, 0x9B, 0xC6, 0x7D, 0xF7, 0xD8, 0xD3, 0x8A, 0x40, 0xE2 };
+  static const PROGMEM u1_t NWKSKEY[16] = { 0x1F, 0xCC, 0xF8, 0x29, 0x2F, 0x6D, 0x20, 0x40, 0x77, 0xFC, 0xD1, 0xB4, 0x62, 0xFC, 0x5E, 0x56 };
   static const u1_t PROGMEM APPSKEY[16] = { 0x7B, 0x2D, 0x93, 0xEA, 0x74, 0x34, 0x9C, 0x65, 0x55, 0x2A, 0xB7, 0xA7, 0x15, 0xB9, 0x3D, 0x4C };
   static const u4_t DEVADDR = 0x2603167B;
 #endif
 #ifdef ttn_heltec_forte
-  static const PROGMEM u1_t NWKSKEY[16] = { 0x2C, 0xB4, 0xDB, 0xFF, 0x01, 0xB8, 0x46, 0x2E, 0xEF, 0x82, 0x5F, 0xFC, 0x89, 0x83, 0xB0, 0xD0 };
-  static const u1_t PROGMEM APPSKEY[16] = { 0xBF, 0xEE, 0x49, 0x92, 0x7E, 0x7F, 0x4C, 0x88, 0x79, 0xE7, 0xA7, 0x71, 0x0F, 0x40, 0xD5, 0x64 };
-  static const u4_t DEVADDR = 0x26031448;
+  static const PROGMEM u1_t NWKSKEY[16] = { 0x32, 0x81, 0x1D, 0x56, 0x74, 0xFB, 0x7B, 0xD8, 0x09, 0x8B, 0x68, 0x38, 0x31, 0xA3, 0x36, 0xB9 };
+  static const u1_t PROGMEM APPSKEY[16] = { 0x82, 0xA4, 0x9F, 0xE5, 0x25, 0x75, 0x93, 0x4B, 0xF0, 0xB7, 0x81, 0x51, 0xCA, 0x42, 0xFE, 0xC6 };
+  static const u4_t DEVADDR = 0x26031868;
 #endif
-//#ifdef ttn_heltec_forte
-//  static const PROGMEM u1_t NWKSKEY[16] = { 0x8A, 0x5D, 0xD5, 0x8E, 0xBC, 0x1C, 0x75, 0xC0, 0x06, 0xD8, 0xF9, 0x64, 0xAA, 0x31, 0x24, 0xCF };
-//  static const u1_t PROGMEM APPSKEY[16] = { 0x22, 0x11, 0x0A, 0x96, 0x62, 0x29, 0x85, 0x08, 0x11, 0x18, 0x73, 0x73, 0x17, 0x90, 0x7D, 0x76 };
-//  static const u4_t DEVADDR = 0x26031AB1;
-//#endif
 #ifdef ttn_heltec_fraco
   static const PROGMEM u1_t NWKSKEY[16] = { 0xF7, 0x0F, 0x22, 0x84, 0x5C, 0x07, 0x50, 0x84, 0x31, 0x5C, 0x0D, 0x5B, 0x54, 0x96, 0xBC, 0x3F };
   static const u1_t PROGMEM APPSKEY[16] = { 0x1C, 0xF6, 0xAC, 0x56, 0x01, 0x38, 0xA7, 0xCC, 0xD7, 0xC1, 0x2E, 0xF9, 0x0B, 0x1A, 0x54, 0x52 };
@@ -92,17 +81,20 @@ void os_getArtEui (u1_t* buf) { }
 void os_getDevEui (u1_t* buf) { }
 void os_getDevKey (u1_t* buf) { }
 
-//Limite 51 bytes
+//Criação do payload com Limite de 51 bytes
 int tamanho_vetor = 51;
-static uint8_t  mydata[51];
-
+#ifdef cayenne
+  CayenneLPP lpp(51);
+#else
+  static uint8_t  mydata[51];
+#endif
 //Talvez deixar só o sendjob
 //static osjob_t initjob, sendjob, blinkjob;
 static osjob_t sendjob;
 
 // Schedule TX every this many seconds (might become longer due to duty
 // cycle limitations).
-const unsigned TX_INTERVAL = 300; //Padrão 60
+const unsigned TX_INTERVAL = 02; //Padrão 60
 
 #ifdef heltec
 //Pin mapping heltec
@@ -137,10 +129,9 @@ void do_send(osjob_t* j) {
     // O atraso do sensor pode chegar a 2 segundos.
   #endif
   
-  // Armazena dados da temperatura, umidade e luz, se houver
+  // Armazena dados da temperatura e umidade
   float h = dht.readHumidity();
   float t = dht.readTemperature();
-  int luz = digitalRead(PINO_LUZ);
   
   //Acende luzes arduino
   if (t > 15){
@@ -166,11 +157,11 @@ void do_send(osjob_t* j) {
       // que transmitirá via Lora o que foi recebido
       // da TTN e seta varíavel booleana da recebimento para false
       myString = dados_recebidos;
-      //recebido = false;
+      recebido = false;
     }
     //Se não medir temperatura e umidade escreve msg de erro
     else if (isnan(t) || isnan(h)) {
-      myString = "Sem dados do sensor!";
+      myString = "Erro na medição!";
     }
     else {
       //Usa Mystring para formar um único texto para escrita
@@ -180,19 +171,20 @@ void do_send(osjob_t* j) {
       myString = myString + " ºC - ";
       myString = myString + "Umid: ";
       myString = myString + String(h);
-      myString = myString + " % - ";
-      myString = myString + " Luz: ";
-      myString = myString + String(luz);
+      myString = myString + " %";
     }
 
     //Printa na Serial
     Serial.println(myString);
 
-    //Converte para const void para copair para memória do LoRa
-    const void * text = myString.c_str();
-
-    //Copia dados para memória do LoRa
-    memcpy(mydata, text, sizeof(mydata));
+#ifdef cayenne // Receber dados do sensor e armazelá-lo em buffer para transmissão
+    lpp.reset();
+    lpp.addTemperature(1, t);
+    lpp.addRelativeHumidity(3, h);
+#else
+    const void *text = myString.c_str(); //Converte para const void para copair para memória do LoRa
+    memcpy(mydata, text, sizeof(mydata)); //Copia dados para memória do LoRa
+#endif
 
     // Condicional abaixo utilziado para variar dados entre pares e ímpares
     // if (resto == 1) {
@@ -211,42 +203,25 @@ void do_send(osjob_t* j) {
     //   //}
     // } 
    
-    // Prepare transmission at the next possible time.
-    LMIC_setTxData2(1, mydata, strlen((char*) mydata), 0); // 1 envia ACK
+#ifdef cayenne // Prepare transmission at the next possible time using Cayenne LPP.
+    LMIC_setTxData2(1, lpp.getBuffer(), lpp.getSize(), 0);
+#else
+    LMIC_setTxData2(1, mydata, strlen((char *)mydata), 0); // Prepare transmission at the next possible time using the default payload.
+#endif
     //LMIC_setTxData();
     Serial.println(); 
     Serial.println("Packet queued");
     Serial.print("TX nº: ");
     Serial.println(contador);
-    Serial.println((char*)mydata);
+    Serial.println(myString);
     Serial.println(LMIC.freq);
     //Serial.print("Temperatura = ");
     //Serial.print(temperatura);
     //Serial.println(" *C");
-    
-    //Verifica se dados foram recebidos
-    //em caso positivo, escreve no display
-    //e altera valor de recebido para false
-    if (recebido){
-      #ifdef heltec
-        Heltec.display->setFont(ArialMT_Plain_10);
-        Heltec.display->drawString(0, 0, dados_recebidos);
-        //Heltec.display->drawString(0, 15, "localizado!");
-        Heltec.display->setFont(ArialMT_Plain_10);
-        myString = "Frq: ";
-        myString = myString + String((LMIC.freq)/1000);
-        myString = myString + " kHz - ";
-        myString = myString + String(contador);
-        Heltec.display->drawString(0, 50, myString);
-        Heltec.display->display();
-        recebido = false;
-      #endif
-    }
 
-    // se não foi recebido
-    // testa se retorno do sensor é valido, 
-    // caso contrário algo está errado.
-    else if (isnan(t) || isnan(h)) 
+
+    // testa se retorno é valido, caso contrário algo está errado.
+    if (isnan(t) || isnan(h)) 
     {
       Serial.println("Failed to read from DHT");
       #ifdef heltec
@@ -261,9 +236,7 @@ void do_send(osjob_t* j) {
         Heltec.display->drawString(0, 50, myString);
         Heltec.display->display();
       #endif
-    }
-    //se dados não foram recebidos e está tudo OK com sensor
-    //escreve temp e umidade na tela 
+    } 
     else
     {
       #ifdef heltec
@@ -278,17 +251,17 @@ void do_send(osjob_t* j) {
         myString = myString + String(h);
         myString = myString + " %";
         Heltec.display->setFont(ArialMT_Plain_10);
-        Heltec.display->drawString(0, 32, myString);
+        Heltec.display->drawString(0, 40, myString);
         Heltec.display->setFont(ArialMT_Plain_10);
         myString = "Frq: ";
         myString = myString + String((LMIC.freq)/1000);
         myString = myString + " kHz - ";
         myString = myString + String(contador);
-        Heltec.display->drawString(0, 42, myString);
-        myString = "Luminosidade: ";
-        myString = myString + String(luz);
-        Heltec.display->drawString(0, 52, myString);
+        Heltec.display->drawString(0, 50, myString);
         Heltec.display->display();
+        digitalWrite(LED, HIGH);
+        delay(1000);
+        digitalWrite(LED, LOW);
       #endif
     }
 
@@ -342,7 +315,7 @@ void onEvent (ev_t ev) {
         Serial.write(LMIC.frame + LMIC.dataBeg, LMIC.dataLen);
         //Armazena dados recebidos na variável dados_recebidos e seta
         // variável booleana de recebimento de dados da TTN para true 
-        dados_recebidos = (char*) LMIC.frame + LMIC.dataBeg, LMIC.dataLen;
+        dados_recebidos = (char*) LMIC.frame + LMIC.dataBeg && LMIC.dataLen; //Alterado ',' por '&'
         Serial.println(dados_recebidos);
         recebido = true;
         Serial.println("==========================================");
@@ -381,9 +354,6 @@ void onEvent (ev_t ev) {
 }
 
 void setup() {
-
-  //Inicialza pinagem luminosidade
-  pinMode (PINO_LUZ, INPUT);
 
   #ifdef heltec
     //Inicialização Display
