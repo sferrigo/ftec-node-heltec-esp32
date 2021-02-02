@@ -368,8 +368,8 @@ void onEvent (ev_t ev) {
         Serial.write(LMIC.frame + LMIC.dataBeg, LMIC.dataLen);
         //Armazena dados recebidos na variável dados_recebidos e seta
         // variável booleana de recebimento de dados da TTN para true 
-        //dados_recebidos = (char*) LMIC.frame + LMIC.dataBeg, LMIC.dataLen;
-        //Serial.println(dados_recebidos);
+        dados_recebidos = (char*) LMIC.frame + LMIC.dataBeg, LMIC.dataLen;
+        Serial.println(dados_recebidos);
         recebido = true;
         Serial.println("==========================================");
         Serial.println();
