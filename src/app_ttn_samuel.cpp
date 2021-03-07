@@ -3,6 +3,7 @@
 #include <hal/hal.h>
 #include <SPI.h>
 #include <DHT.h>
+//#include "TheThingsNetwork.h"
 //Descomentar se usar heltec
 #include "heltec.h"
 
@@ -80,14 +81,14 @@ DHT dht(DHTPIN, DHTTYPE);
 
 
 //Variáveis globais
-//contador de transmissões/quadros
+//contador de quadros
 int contador = 0;
 //Usado para diferenciar par e ímpar
 int resto = 0;
 // Indicador de recebimento de dados da TTN
 bool recebido = false;
 //Variável que armazena os dados recebidos da TTN
-char buffer[51]; 
+String dados_recebidos;
 
 
 // These callbacks are only used in over-the-air activation, so they are
@@ -130,107 +131,62 @@ const lmic_pinmap lmic_pins = {
 }; 
 #endif
 
-//Função para esrever em tela
-void escreveHeltec(char *msg, int x ,int y){
-  Heltec.display->drawString(x, y, (char *) *msg);
-  Heltec.display->display();
-  return;
-}
-
-//Função para escrever que não foi localizado dado dos sensores
-void escreveNaoLocalizado(){
-  Heltec.display->setFont(ArialMT_Plain_16);
-  Heltec.display->drawString(0, 0, "Algum sensor");
-  Heltec.display->drawString(0, 0, "não foi");
-  Heltec.display->drawString(0, 15, "localizado!");
-  Heltec.display->display();
-  return;
-}
-
-String textoFrequencia(){
-  Heltec.display->setFont(ArialMT_Plain_10);
-        String texto = "Frq: ";
-        texto = texto + String((LMIC.freq)/1000);
-        texto = texto + " kHz - ";
-        texto = texto + String(contador);
-  return texto;
-}
-
-//Função para ler e retornar valor do sensor de umidade
-float lerUmidade(){
-  float h = dht.readHumidity();
-  return h;
-}
-
-//Função para ler e retornar valor do sensor de temperatura
-float lerTemperatura(){
-   // Armazena dados da temperatura, umidade e luz, se houver
-  float t = dht.readTemperature();
-  return t;
-}
-
-//Função para ler e retornar valor do sensor de luminosidade
-//Valores retornados em binário
-int lerLuminosidade(){
-  int luz = digitalRead(PINO_LUZ);
-  return luz;
-  
-}
-
-
-//Função que recebe dados
-char* recebeDados(){
-  //Se recebeu dados, grava na variável myString
-  // que transmitirá via Lora o que foi recebido
-  // da TTN e seta varíavel booleana da recebimento para false
-  //char *buffer = (char *) *dados_recebidos;
-
-  Serial.println("==========================================");
-  Serial.print("Dados Recebidos: ");
-  Serial.write(LMIC.frame + LMIC.dataBeg, LMIC.dataLen);
-  //Armazena dados recebidos na variável dados_recebidos e seta
-  // variável booleana de recebimento de dados da TTN para true 
-  String dados_recebidos = (char *) LMIC.frame + LMIC.dataBeg + LMIC.dataLen;
-  Serial.println(dados_recebidos);
-  recebido = true;
-  Serial.println("==========================================");
-  Serial.println();
-  //Converte String para array de char
-  char* dados_recebidos_char = &dados_recebidos[0];
-  return dados_recebidos_char;
-
-}
-
-
 void do_send(osjob_t* j) {
 
   // Parâmetros DHT
   // Cria string que armazenará os dados de temperatura e umidade
-    
   String myString;
-
+  //Delay para leitura dos dados
+  //delay(TX_INTERVAL * 1000);
+  
   #ifdef heltec
     //Limpa display
     Heltec.display->clear();
+    // A leitura da temperatura e umidade pode levar 250ms!
+    // O atraso do sensor pode chegar a 2 segundos.
   #endif
   
+  // Armazena dados da temperatura, umidade e luz, se houver
+  float h = dht.readHumidity();
+  float t = dht.readTemperature();
+
+  //#ifdef heltec
+    int luz = !digitalRead(PINO_LUZ);
+  //#endif
+
+  //Acende luzes arduino
+  if (t > 15){
+    //digitalWrite(2, HIGH);
+    //digitalWrite(3,LOW);
+  }else if(t >= 15 || t < 20){
+    //digitalWrite(2, HIGH);
+    //digitalWrite(3,HIGH);
+  }else{
+    //digitalWrite(2, LOW);
+    //digitalWrite(3,HIGH);
+  }
+
+
   // Check if there is not a current TX/RX job running
   if (LMIC.opmode & OP_TXRXPEND) {
     Serial.println(F("OP_TXRXPEND, not sending"));
   } else {
+    resto = contador % 2;
     
     if (recebido){
-        recebeDados();
+      //Se recebeu dados, grava na variável myString
+      // que transmitirá via Lora o que foi recebido
+      // da TTN e seta varíavel booleana da recebimento para false
+      myString = dados_recebidos;
+      //recebido = false;
     }
     //Se não medir temperatura e umidade escreve msg de erro
-    // Talvez criar função aqui
-    else if (isnan(lerUmidade()) || isnan(lerTemperatura())) {
-      myString = "Sem dados de algum sensor!";
+    else if (isnan(t) || isnan(h)) {
+      myString = "Sem dados do sensor!";
     }
     else {
       //Usa Mystring para formar um único texto para escrita
       //na console e transmissão para LoRa
-      
       myString = "Temp: ";
       myString = myString + String(t);
       myString = myString + " ºC - ";
@@ -239,7 +195,7 @@ void do_send(osjob_t* j) {
       myString = myString + " % - ";
       myString = myString + " Luz: ";
       #ifdef heltec
-        escreveHeltec((char *) &myString, 0, 50);
+        myString = myString + String(luz);
       #endif
     }
 
@@ -248,9 +204,9 @@ void do_send(osjob_t* j) {
 
     #ifdef cayenne
     lpp.reset();
-    // lpp.addTemperature(1, t);
-    // lpp.addRelativeHumidity(3, h);
-    // lpp.addLuminosity(2,luz);
+    lpp.addTemperature(1, t);
+    lpp.addRelativeHumidity(3, h);
+    lpp.addLuminosity(2,luz);
     #else
       //Converte para const void para copair para memória do LoRa
       const void * text = myString.c_str();
@@ -258,9 +214,25 @@ void do_send(osjob_t* j) {
       //Copia dados para memória do LoRa
       memcpy(mydata, text, sizeof(mydata));
     #endif
-    
+    // Condicional abaixo utilziado para variar dados entre pares e ímpares
+    // if (resto == 1) {
+    //   //dtostrf(0, 5, 2, (char*)mydata);
+    //   memcpy(mydata, text, sizeof(mydata));
+    //   //for (int i = 0; i < tamanho_vetor; i++){
+    //   //    mydata[i] = (uint8_t) "2";
+    //   //}
+    //   //Serial.println(mydata);
+    // }
+    // else{
+    //   //dtostrf(1, 5, 2, (char*)mydata);
+    //   memcpy(mydata, text, sizeof(mydata));
+    //   //for (int i = 0; i < tamanho_vetor; i++){
+    //   //    mydata[i] = (uint8_t) "1";
+    //   //}
+    // } 
+   
     #ifdef cayenne
-      LMIC_setTxData2(1, lpp.getBuffer(), lpp.getSize(), 0);
+      LMIC_setTxData2(1, lpp.getBuffer(), lpp.getSize(), 1);
     #else
       // Prepare transmission at the next possible time.
       LMIC_setTxData2(1, mydata, strlen((char*) mydata), 0); // 1 envia ACK
@@ -274,7 +246,9 @@ void do_send(osjob_t* j) {
       Serial.println((char*)mydata);
     #endif
     Serial.println(LMIC.freq);
-
+    //Serial.print("Temperatura = ");
+    //Serial.print(temperatura);
+    //Serial.println(" *C");
     
     //Verifica se dados foram recebidos
     //em caso positivo, escreve no display
@@ -282,10 +256,15 @@ void do_send(osjob_t* j) {
     if (recebido){
       #ifdef heltec
         Heltec.display->setFont(ArialMT_Plain_10);
-        Heltec.display->drawString(0, 0, recebeDados());
-        Heltec.display->drawString(0, 50, textoFrequencia());
+        Heltec.display->drawString(0, 0, dados_recebidos);
+        //Heltec.display->drawString(0, 15, "localizado!");
+        Heltec.display->setFont(ArialMT_Plain_10);
+        myString = "Frq: ";
+        myString = myString + String((LMIC.freq)/1000);
+        myString = myString + " kHz - ";
+        myString = myString + String(contador);
+        Heltec.display->drawString(0, 50, myString);
         Heltec.display->display();
-        //Seta para não recebido.
         recebido = false;
       #endif
     }
@@ -293,12 +272,19 @@ void do_send(osjob_t* j) {
     // se não foi recebido
     // testa se retorno do sensor é valido, 
     // caso contrário algo está errado.
-    else if (isnan(lerTemperatura()) || isnan(lerUmidade())) 
+    else if (isnan(t) || isnan(h)) 
     {
-      Serial.println("Dados de temperatura e umidade não localizados");
+      Serial.println("Failed to read from DHT");
       #ifdef heltec
-        escreveNaoLocalizado();
-        Heltec.display->drawString(0, 50, textoFrequencia());
+        Heltec.display->setFont(ArialMT_Plain_16);
+        Heltec.display->drawString(0, 0, "Sensor não ");
+        Heltec.display->drawString(0, 15, "localizado!");
+        Heltec.display->setFont(ArialMT_Plain_10);
+        myString = "Frq: ";
+        myString = myString + String((LMIC.freq)/1000);
+        myString = myString + " kHz - ";
+        myString = myString + String(contador);
+        Heltec.display->drawString(0, 50, myString);
         Heltec.display->display();
       #endif
     }
@@ -308,15 +294,14 @@ void do_send(osjob_t* j) {
     {
       #ifdef heltec
         //Mostra os dados no display
-        //Talvez gerar função específica
-        myString = String(lerTemperatura());
+        myString = String(t);
         myString = myString + " ºC";
         Heltec.display->setFont(ArialMT_Plain_10);
         Heltec.display->drawString(0, 0, "Temperatura");
         Heltec.display->setFont(ArialMT_Plain_24);
         Heltec.display->drawString(0, 10, myString);
         myString = "Umidade: ";
-        myString = myString + String(lerUmidade());
+        myString = myString + String(h);
         myString = myString + " %";
         Heltec.display->setFont(ArialMT_Plain_10);
         Heltec.display->drawString(0, 32, myString);
@@ -327,7 +312,7 @@ void do_send(osjob_t* j) {
         myString = myString + String(contador);
         Heltec.display->drawString(0, 42, myString);
         myString = "Luminosidade: ";
-        myString = myString + String(lerLuminosidade());
+        myString = myString + String(luz);
         Heltec.display->drawString(0, 52, myString);
         Heltec.display->display();
       #endif
@@ -377,18 +362,17 @@ void onEvent (ev_t ev) {
     case EV_TXCOMPLETE:
       Serial.println("EV_TXCOMPLETE (includes waiting for RX windows)");
       if (LMIC.dataLen) {
-        recebeDados();
         // data received in rx slot after tx
-        // Serial.println("==========================================");
-        // Serial.print("Data Received: ");
-        // Serial.write(LMIC.frame + LMIC.dataBeg, LMIC.dataLen);
-        // //Armazena dados recebidos na variável dados_recebidos e seta
-        // // variável booleana de recebimento de dados da TTN para true 
-        //dados_recebidos = (char*) LMIC.frame + LMIC.dataBeg, LMIC.dataLen;
-        //Serial.println(dados_recebidos);
-        // recebido = true;
-        // Serial.println("==========================================");
-        // Serial.println();
+        Serial.println("==========================================");
+        Serial.print("Data Received: ");
+        Serial.write(LMIC.frame + LMIC.dataBeg, LMIC.dataLen);
+        //Armazena dados recebidos na variável dados_recebidos e seta
+        // variável booleana de recebimento de dados da TTN para true 
+        dados_recebidos = (char*) LMIC.frame + LMIC.dataBeg, LMIC.dataLen;
+        Serial.println(dados_recebidos);
+        recebido = true;
+        Serial.println("==========================================");
+        Serial.println();
 
       }else{
         Serial.println("==========================================");
@@ -449,6 +433,10 @@ void setup() {
   dht.begin();
 
   //Inicialização Lora
+  //SPI.begin(5, 19, 27);
+  Serial.begin(115200); //Talvez alterar para 115200
+  
+  //analogReference(INTERNAL); // Talvez comentar
   while (!Serial);
   delay(5000);
   Serial.println("Starting...");
@@ -535,4 +523,18 @@ void setup() {
 }
 
 void loop() {
+  
+  #ifndef heltec
+  //Aguarda resposta para TTN retransmitir ao dispositivo
   os_runloop_once();
+  #else
+  //Heltec não abre a janela de RX. Causa desconehcida. BW 500
+  os_runloop_once();
+  //delay(TX_INTERVAL * 1000);
+  //LMIC_clrTxData();
+  //do_send(&sendjob);
+  #endif
+  //Serial.print("Frequencia: ");
+  //Serial.println(LMIC.freq);
+  
+}
