@@ -34,11 +34,12 @@ DHT dht(DHTPIN, DHTTYPE);
 
 //Define qual dos dispositivos será compilado. Somente um por vez pode ser compilado
 //#define ttn_dragino 
-#define ttn_heltec_forte 
+//#define ttn_heltec_forte 
 //#define ttn_heltec_fraco 
+#define ttn3_heltec_forte
 
 //Define canais utilizados. Somente um por vez pode ser utilizado
-//#define canal_unico //Canal único usado no Heltec Single Gateway de sferrigo
+//#define canal_unico //Canal único 917 MHz usado no Heltec Single Gateway de sferrigo 
 //#define ttn_caxias_915 //Canais usados na TTN Caxias e canal 915.1 configurado no SGW
 #define ttn_caxias //Canais usados na TTN Caxias
 
@@ -63,9 +64,14 @@ DHT dht(DHTPIN, DHTTYPE);
   static const u4_t DEVADDR = 0x260317AD;
 #endif
 #ifdef ttn_heltec_forte
-  static const PROGMEM u1_t NWKSKEY[16] = { 0xDE, 0x19, 0x05, 0x7B, 0xB6, 0x9C, 0x76, 0xE7, 0x5F, 0xDB, 0x1C, 0x08, 0x23, 0xE3, 0x31, 0x9F };
-  static const u1_t PROGMEM APPSKEY[16] = { 0xD8, 0x7B, 0xCD, 0x10, 0xD4, 0x67, 0x39, 0x07, 0x45, 0xC8, 0x44, 0x16, 0x4D, 0x93, 0x9E, 0x48 };
-  static const u4_t DEVADDR = 0x2603178B;
+  static const PROGMEM u1_t NWKSKEY[16] = { 0x2C, 0xB4, 0xDB, 0xFF, 0x01, 0xB8, 0x46, 0x2E, 0xEF, 0x82, 0x5F, 0xFC, 0x89, 0x83, 0xB0, 0xD0 };
+  static const u1_t PROGMEM APPSKEY[16] = { 0xBF, 0xEE, 0x49, 0x92, 0x7E, 0x7F, 0x4C, 0x88, 0x79, 0xE7, 0xA7, 0x71, 0x0F, 0x40, 0xD5, 0x64 };
+  static const u4_t DEVADDR = 0x26031448;
+#endif
+#ifdef ttn3_heltec_forte
+  static const PROGMEM u1_t NWKSKEY[16] = { 0xB5, 0x38, 0x6E, 0x7F, 0x9D, 0xBC, 0x02, 0xEC, 0x59, 0x08, 0xF8, 0xFD, 0x07, 0xA1, 0xE5, 0x08 };
+  static const u1_t PROGMEM APPSKEY[16] = { 0x37, 0x8A, 0x5B, 0x41, 0xC8, 0x01, 0xC0, 0x72, 0x77, 0x45, 0xCB, 0x5F, 0xBE, 0x77, 0x45, 0x0A };
+  static const u4_t DEVADDR = 0x260C3398;
 #endif
 //#ifdef ttn_heltec_forte
 //  static const PROGMEM u1_t NWKSKEY[16] = { 0x8A, 0x5D, 0xD5, 0x8E, 0xBC, 0x1C, 0x75, 0xC0, 0x06, 0xD8, 0xF9, 0x64, 0xAA, 0x31, 0x24, 0xCF };
@@ -111,7 +117,7 @@ static osjob_t sendjob;
 
 // Schedule TX every this many seconds (might become longer due to duty
 // cycle limitations).
-const unsigned TX_INTERVAL = 600; //Padrão 60
+const unsigned TX_INTERVAL = 10; //Padrão 60
 
 #ifdef heltec
 //Pin mapping heltec
@@ -183,6 +189,10 @@ void do_send(osjob_t* j) {
     //Se não medir temperatura e umidade escreve msg de erro
     else if (isnan(t) || isnan(h)) {
       myString = "Sem dados do sensor!";
+      t = 50;
+      h = 50;
+      luz = 0;
+      //myString = "0204+26.639.000000073.50682004200.00000000.000000";
     }
     else {
       //Usa Mystring para formar um único texto para escrita
@@ -232,7 +242,7 @@ void do_send(osjob_t* j) {
     // } 
    
     #ifdef cayenne
-      LMIC_setTxData2(1, lpp.getBuffer(), lpp.getSize(), 1);
+      LMIC_setTxData2(1, lpp.getBuffer(), lpp.getSize(), 0);
     #else
       // Prepare transmission at the next possible time.
       LMIC_setTxData2(1, mydata, strlen((char*) mydata), 0); // 1 envia ACK
@@ -476,11 +486,16 @@ void setup() {
   LMIC.dn2Dr = DR_SF9;
 
   // Set data rate and transmit power (note: txpow seems to be ignored by the library)
-  LMIC_setDrTxpow(DR_SF10, 14); // Ver se GW está no 10; 14 é 14dBM
+  LMIC_setDrTxpow(DR_SF9, 15); // Ver se GW está no 10; 14 é 14dBM
 
   #ifdef canal_unico
     //Deixa canal único
-    for (int i = 1; i < 64; i++)
+    for (int i = 0; i < 9; i++)
+    {
+      LMIC_disableChannel(i);  // only the first channel 902.3Mhz works now.
+      Serial.println("Desabilitando canal ");
+    }
+    for (int i = 10; i < 64; i++)
     {
       LMIC_disableChannel(i);  // only the first channel 902.3Mhz works now.
       Serial.println("Desabilitando canal ");
