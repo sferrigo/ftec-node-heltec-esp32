@@ -117,7 +117,7 @@ static osjob_t sendjob;
 
 // Schedule TX every this many seconds (might become longer due to duty
 // cycle limitations).
-const unsigned TX_INTERVAL = 10; //Padrão 60
+const unsigned TX_INTERVAL = 600; //Padrão 60
 
 #ifdef heltec
 //Pin mapping heltec
@@ -189,9 +189,9 @@ void do_send(osjob_t* j) {
     //Se não medir temperatura e umidade escreve msg de erro
     else if (isnan(t) || isnan(h)) {
       myString = "Sem dados do sensor!";
-      t = 50;
-      h = 50;
-      luz = 0;
+      //t = 50;
+      //h = 50;
+      //luz = 0;
       //myString = "0204+26.639.000000073.50682004200.00000000.000000";
     }
     else {
