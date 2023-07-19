@@ -189,9 +189,9 @@ void do_send(osjob_t* j) {
     //Se não medir temperatura e umidade escreve msg de erro
     else if (isnan(t) || isnan(h)) {
       myString = "Sem dados do sensor!";
-      //t = 50;
-      //h = 50;
-      //luz = 0;
+      t = 0;
+      h = 0;
+      luz = 0;
       //myString = "0204+26.639.000000073.50682004200.00000000.000000";
     }
     else {
@@ -486,7 +486,7 @@ void setup() {
   LMIC.dn2Dr = DR_SF9;
 
   // Set data rate and transmit power (note: txpow seems to be ignored by the library)
-  LMIC_setDrTxpow(DR_SF9, 15); // Ver se GW está no 10; 14 é 14dBM
+  LMIC_setDrTxpow(DR_SF7, 15); // Ver se GW está no 10; 14 é 14dBM
 
   #ifdef canal_unico
     //Deixa canal único
